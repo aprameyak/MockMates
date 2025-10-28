@@ -1,0 +1,111 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  password      String
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts Account[]
+  sessions Session[]
+  profile  Profile?
+  sentMatches     Match[] @relation("MatchSender")
+  receivedMatches Match[] @relation("MatchReceiver")
+  sentMessages    Message[] @relation("MessageSender")
+  receivedMessages Message[] @relation("MessageReceiver")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Profile {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  bio         String?
+  experience  String?  // e.g., "Entry Level", "Mid Level", "Senior"
+  skills      String[] // Array of skills
+  industry    String?  // e.g., "Tech", "Finance", "Healthcare"
+  location    String?
+  timezone    String?
+  availability String? // e.g., "Weekdays", "Weekends", "Flexible"
+  linkedinUrl String?
+  githubUrl   String?
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Match {
+  id        String   @id @default(cuid())
+  senderId  String
+  receiverId String
+  
+  sender    User @relation("MatchSender", fields: [senderId], references: [id], onDelete: Cascade)
+  receiver  User @relation("MatchReceiver", fields: [receiverId], references: [id], onDelete: Cascade)
+  
+  isMatched Boolean  @default(false)
+  createdAt DateTime @default(now())
+  
+  @@unique([senderId, receiverId])
+}
+
+model Message {
+  id        String   @id @default(cuid())
+  senderId  String
+  receiverId String
+  content   String
+  
+  sender    User @relation("MessageSender", fields: [senderId], references: [id], onDelete: Cascade)
+  receiver  User @relation("MessageReceiver", fields: [receiverId], references: [id], onDelete: Cascade)
+  
+  createdAt DateTime @default(now())
+  readAt    DateTime?
+}
