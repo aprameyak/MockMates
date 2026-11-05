@@ -57,9 +57,12 @@ export default async function MessagePage({ params }: MessagePageProps) {
         { senderId: targetUser.id, receiverId: currentUser.id }
       ]
     },
-    include: {
-      sender: true,
-      receiver: true
+    select: {
+      id: true,
+      content: true,
+      createdAt: true,
+      sender: { select: { id: true, name: true } },
+      receiver: { select: { id: true, name: true } }
     },
     orderBy: { createdAt: 'asc' }
   })
@@ -83,7 +86,7 @@ export default async function MessagePage({ params }: MessagePageProps) {
 
         <div className="max-w-4xl mx-auto">
           <ChatInterface 
-            messages={messages}
+            messages={messages.map((m) => ({ ...m, createdAt: m.createdAt.toISOString() }))}
             currentUserId={currentUser.id}
             targetUserId={targetUser.id}
             targetUserName={targetUser.name || 'Anonymous'}
